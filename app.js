@@ -97,6 +97,17 @@ function parseWorkbook(data, fileName) {
       });
     }
   }
+
+  // Одинаковые операции в один день бывают настоящими (два раза по 150 за транспорт),
+  // поэтому в ключ идёт ещё и номер повтора внутри файла — так пересекающиеся
+  // выписки схлопываются, а честные дубли остаются.
+  const seen = new Map();
+  for (const r of rows) {
+    const base = `${r.date}|${r.type}|${r.amount}|${r.desc}`;
+    const n = (seen.get(base) || 0) + 1;
+    seen.set(base, n);
+    r.uid = `${base}|${n}`;
+  }
   return rows;
 }
 
@@ -136,15 +147,79 @@ function readFiles(fileList) {
   }))).then(results => {
     const rows = results.flat();
     if (!rows.length) {
-      const el = $('uploadError');
-      el.textContent = 'Не удалось найти операции в файле. Загрузите выписку банка в формате .xlsx — с колонками «Дата», «Мутк/Ելք» и описанием операции.';
-      el.classList.remove('hidden');
+      showUploadError('Не удалось найти операции в файле. Загрузите выписку банка в формате .xlsx — с колонками «Дата», «Мутք/Ելք» и описанием операции.');
       return;
     }
-    TX = rows.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-    localStorage.setItem(STORE_KEY, JSON.stringify(TX));
+
+    // новые выписки добавляются к уже загруженным; повторы отбрасываем
+    const known = new Set(TX.map(t => t.uid));
+    const fresh = rows.filter(t => !known.has(t.uid));
+    fresh.forEach(t => known.add(t.uid));
+
+    if (!fresh.length) {
+      showUploadError('Эти операции уже загружены — выписка за этот период уже есть.');
+      return;
+    }
+
+    TX = TX.concat(fresh).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    save();
     showDashboard();
+    flash(rows.length - fresh.length
+      ? `Добавлено ${plural(fresh.length, 'операция', 'операции', 'операций')}, ${rows.length - fresh.length} уже были загружены`
+      : `Добавлено ${plural(fresh.length, 'операция', 'операции', 'операций')}`);
   });
+}
+
+function showUploadError(text) {
+  const el = $('uploadError');
+  el.textContent = text;
+  el.classList.remove('hidden');
+  flash(text);
+}
+
+// короткое сообщение над списком выписок
+let flashTimer = 0;
+function flash(text) {
+  const el = $('fileNote');
+  el.textContent = text;
+  el.classList.remove('hidden');
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => el.classList.add('hidden'), 6000);
+}
+
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(TX)); }
+  catch (e) { console.error('Не удалось сохранить в localStorage', e); }
+}
+
+/* ---------- список загруженных выписок ---------- */
+
+function renderFiles() {
+  const names = [...new Set(TX.map(t => t.file))];
+  $('fileList').innerHTML = names.map(name => {
+    const rows = TX.filter(t => t.file === name);
+    const dates = rows.map(t => t.date).sort();
+    const months = [...new Set(dates.map(d => d.slice(0, 7)))];
+    const label = months.length === 1 ? monthName(months[0])
+      : `${fmtDate(dates[0])} — ${fmtDate(dates[dates.length - 1])}`;
+    return `
+      <li class="file-chip">
+        <span class="file-chip-main">
+          <span class="file-chip-name">${esc(label)}</span>
+          <span class="file-chip-meta">${plural(rows.length, 'операция', 'операции', 'операций')} · ${esc(name)}</span>
+        </span>
+        <button type="button" class="file-chip-x" data-file="${esc(name)}"
+                title="Убрать эту выписку" aria-label="Убрать выписку ${esc(name)}">✕</button>
+      </li>`;
+  }).join('');
+}
+
+function removeFile(name) {
+  TX = TX.filter(t => t.file !== name);
+  save();
+  if (!TX.length) { resetAll(); return; }
+  showDashboard();
+  flash('Выписка убрана');
 }
 
 /* ---------- отрисовка ---------- */
@@ -156,10 +231,14 @@ function showDashboard() {
 
   const months = [...new Set(TX.map(t => t.date.slice(0, 7)))].sort().reverse();
   const sel = $('monthSelect');
+  const wanted = sel.value;                    // после добавления файла период не сбрасываем
   sel.innerHTML = '';
   if (months.length > 1) sel.append(new Option('Все периоды', 'all'));
   months.forEach(m => sel.append(new Option(monthName(m), m)));
-  sel.value = months.length > 1 ? 'all' : months[0];
+  sel.value = [...sel.options].some(o => o.value === wanted) ? wanted
+    : (months.length > 1 ? 'all' : months[0]);
+
+  renderFiles();
 
   const cats = [...new Set(TX.filter(t => t.type === 'out').map(t => t.cat))].sort();
   const cf = $('catFilter');
@@ -338,7 +417,14 @@ function esc(s) {
 /* ---------- события ---------- */
 
 const drop = $('drop');
-$('fileInput').addEventListener('change', e => readFiles(e.target.files));
+$('fileInput').addEventListener('change', e => {
+  readFiles(e.target.files);
+  e.target.value = '';       // чтобы тот же файл можно было выбрать снова
+});
+$('fileList').addEventListener('click', e => {
+  const x = e.target.closest('.file-chip-x');
+  if (x) removeFile(x.dataset.file);
+});
 ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e => readFiles(e.dataTransfer.files));
@@ -353,7 +439,7 @@ $('monthSelect').addEventListener('change', render);
 $('search').addEventListener('input', () => { shown = 50; renderTable(); });
 $('catFilter').addEventListener('change', () => { shown = 50; renderTable(); });
 $('moreBtn').addEventListener('click', () => { shown += 50; renderTable(); });
-$('resetBtn').addEventListener('click', () => {
+function resetAll() {
   localStorage.removeItem(STORE_KEY);
   TX = [];
   selectedDay = null;
@@ -361,7 +447,8 @@ $('resetBtn').addEventListener('click', () => {
   $('dashView').classList.add('hidden');
   $('resetBtn').classList.add('hidden');
   $('uploadView').classList.remove('hidden');
-});
+}
+$('resetBtn').addEventListener('click', resetAll);
 
 /* ---------- тема ---------- */
 
@@ -382,8 +469,21 @@ applyTheme(
   (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
 );
 
-/* восстановление прошлой выписки */
+/* восстановление ранее загруженных выписок */
 try {
   const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-  if (Array.isArray(saved) && saved.length) { TX = saved; showDashboard(); }
+  if (Array.isArray(saved) && saved.length) {
+    // выписки, сохранённые до появления uid, получают его сейчас — иначе сломается склейка
+    if (saved.some(t => !t.uid)) {
+      const seen = new Map();
+      saved.forEach(t => {
+        const base = `${t.date}|${t.type}|${t.amount}|${t.desc}`;
+        const n = (seen.get(base) || 0) + 1;
+        seen.set(base, n);
+        t.uid = `${base}|${n}`;
+      });
+    }
+    TX = saved;
+    showDashboard();
+  }
 } catch (e) { /* пустой старт */ }

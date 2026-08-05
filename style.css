@@ -164,6 +164,27 @@ select:hover, input[type="search"]:hover { border-color: var(--accent); }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .grid-2 > .panel { margin-bottom: 24px; }
 
+/* ---- загруженные выписки ---- */
+.file-panel .panel-head { margin-bottom: 16px; align-items: center; }
+.add-btn { display: inline-flex; align-items: center; cursor: pointer; }
+.file-note { font-size: 14px; color: var(--accent); background: var(--accent-soft); border-radius: var(--radius-sm); padding: 8px 12px; margin: 0 0 12px; }
+.file-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; }
+.file-chip {
+  display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px;
+  transition: border-color .2s ease;
+}
+.file-chip:hover { border-color: var(--accent); }
+.file-chip-main { display: flex; flex-direction: column; min-width: 0; }
+.file-chip-name { font-size: 16px; font-weight: 500; }
+.file-chip-meta { font-size: 14px; color: var(--muted); max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chip-x {
+  flex: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+  background: none; border: 0; color: var(--muted); font: inherit; font-size: 16px;
+  transition: background .2s ease, color .2s ease;
+}
+.file-chip-x:hover { background: var(--accent-soft); color: var(--expense); }
+
 /* ---- кольцо категорий ---- */
 .donut-row { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
 .donut-wrap { position: relative; width: 180px; height: 180px; flex: none; }

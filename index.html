@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cashew — трекер расходов по выписке банка</title>
 <meta name="theme-color" content="#12101d">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=3">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥜</text></svg>">
 </head>
 <body>
@@ -17,7 +17,7 @@
       <button id="themeBtn" class="icon-btn" type="button" aria-label="Переключить тему" title="Светлая / тёмная тема">
         <span class="theme-ico">🌙</span>
       </button>
-      <button id="resetBtn" class="btn-ghost hidden" type="button">Другой файл</button>
+      <button id="resetBtn" class="btn-ghost hidden" type="button">Очистить всё</button>
     </div>
   </div>
 </header>
@@ -27,15 +27,15 @@
   <!-- ЭКРАН 1: загрузка -->
   <section id="uploadView">
     <h1>Куда уходят деньги</h1>
-    <p class="lead">Загрузите выписку из банка в формате <b>.xlsx</b> — Cashew посчитает доходы,
-      расходы и покажет, на что вы потратили больше всего. Файл обрабатывается прямо
-      в браузере и никуда не отправляется.</p>
+    <p class="lead">Загрузите выписки из банка в формате <b>.xlsx</b> — Cashew посчитает доходы,
+      расходы и покажет, на что вы потратили больше всего. Можно выбрать сразу несколько
+      файлов за разные месяцы и потом докидывать новые. Файлы обрабатываются прямо
+      в браузере и никуда не отправляются.</p>
 
     <label id="drop" class="drop" for="fileInput" tabindex="0">
       <span class="drop-icon">📄</span>
-      <span class="drop-title">Перетащите файл сюда</span>
-      <span class="drop-sub">или нажмите, чтобы выбрать · .xlsx, .xls, .csv</span>
-      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" multiple hidden>
+      <span class="drop-title">Перетащите файлы сюда</span>
+      <span class="drop-sub">или нажмите, чтобы выбрать · можно несколько · .xlsx, .xls, .csv</span>
     </label>
 
     <p id="uploadError" class="error hidden"></p>
@@ -54,6 +54,15 @@
         <select id="monthSelect"></select>
       </label>
     </div>
+
+    <section class="panel file-panel">
+      <div class="panel-head">
+        <h2>Загруженные выписки</h2>
+        <label class="btn-ghost add-btn" for="fileInput">＋ Добавить выписку</label>
+      </div>
+      <p id="fileNote" class="file-note hidden"></p>
+      <ul id="fileList" class="file-list"></ul>
+    </section>
 
     <div class="cards">
       <article class="card">
@@ -137,11 +146,13 @@
     </section>
 
   </section>
+
+  <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" multiple hidden>
 </main>
 
 <footer class="wrap foot">Данные хранятся только в вашем браузере.</footer>
 
 <script src="vendor/xlsx.full.min.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
