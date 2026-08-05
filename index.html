@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cashew — трекер расходов по выписке банка</title>
+<meta name="theme-color" content="#12101d">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥜</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <div class="brand"><span class="brand-mark">🥜</span> Cashew<span class="brand-sub">аналитика трат</span></div>
+    <div class="topbar-actions">
+      <button id="themeBtn" class="icon-btn" type="button" aria-label="Переключить тему" title="Светлая / тёмная тема">
+        <span class="theme-ico">🌙</span>
+      </button>
+      <button id="resetBtn" class="btn-ghost hidden" type="button">Другой файл</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ЭКРАН 1: загрузка -->
+  <section id="uploadView">
+    <h1>Куда уходят деньги</h1>
+    <p class="lead">Загрузите выписку из банка в формате <b>.xlsx</b> — Cashew посчитает доходы,
+      расходы и покажет, на что вы потратили больше всего. Файл обрабатывается прямо
+      в браузере и никуда не отправляется.</p>
+
+    <label id="drop" class="drop" for="fileInput" tabindex="0">
+      <span class="drop-icon">📄</span>
+      <span class="drop-title">Перетащите файл сюда</span>
+      <span class="drop-sub">или нажмите, чтобы выбрать · .xlsx, .xls, .csv</span>
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" multiple hidden>
+    </label>
+
+    <p id="uploadError" class="error hidden"></p>
+  </section>
+
+  <!-- ЭКРАН 2: дашборд -->
+  <section id="dashView" class="hidden">
+
+    <div class="dash-head">
+      <div>
+        <h1 id="periodTitle">Отчёт</h1>
+        <p id="periodSub" class="muted"></p>
+      </div>
+      <label class="field">
+        <span>Период</span>
+        <select id="monthSelect"></select>
+      </label>
+    </div>
+
+    <div class="cards">
+      <article class="card">
+        <p class="card-label">Доходы</p>
+        <p class="card-value income" id="sumIncome">—</p>
+        <p class="card-note" id="cntIncome"></p>
+      </article>
+      <article class="card">
+        <p class="card-label">Расходы</p>
+        <p class="card-value expense" id="sumExpense">—</p>
+        <p class="card-note" id="cntExpense"></p>
+      </article>
+      <article class="card">
+        <p class="card-label">Разница</p>
+        <p class="card-value" id="sumNet">—</p>
+        <p class="card-note" id="netNote"></p>
+      </article>
+      <article class="card">
+        <p class="card-label">Средний расход в день</p>
+        <p class="card-value" id="avgDay">—</p>
+        <p class="card-note" id="avgNote"></p>
+      </article>
+    </div>
+
+    <div class="grid-2">
+      <section class="panel">
+        <h2>По категориям</h2>
+        <div class="donut-row">
+          <div class="donut-wrap">
+            <svg id="donut" viewBox="0 0 42 42" role="img" aria-label="Диаграмма расходов по категориям"></svg>
+            <div class="donut-center">
+              <span class="donut-pct" id="donutPct">—</span>
+              <span class="donut-cap" id="donutCap"></span>
+            </div>
+          </div>
+          <ul id="catList" class="cat-list"></ul>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Топ мест трат</h2>
+        <ul id="merchantList" class="bar-list"></ul>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Расходы по дням</h2>
+        <span class="muted">нажмите на столбик, чтобы увидеть день</span>
+      </div>
+      <div class="chart-scroll"><div id="dayChart" class="day-chart"></div></div>
+
+      <div id="dayDetail" class="day-detail hidden">
+        <div class="day-detail-head">
+          <div>
+            <p class="panel-kicker" id="dayDetailDate"></p>
+            <p class="hero-line" id="dayDetailSum"></p>
+          </div>
+          <button id="dayClose" class="btn-ghost" type="button">Закрыть</button>
+        </div>
+        <ul id="dayDetailList" class="day-list"></ul>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Все операции</h2>
+        <span class="muted" id="txCount"></span>
+      </div>
+      <div class="filters">
+        <input id="search" type="search" placeholder="Поиск по названию…" aria-label="Поиск по операциям">
+        <select id="catFilter" aria-label="Фильтр по категории"></select>
+      </div>
+      <div class="table-scroll">
+        <table class="tx">
+          <thead><tr><th>Дата</th><th>Операция</th><th>Категория</th><th class="right">Сумма</th></tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+      </div>
+      <button id="moreBtn" class="btn-ghost hidden" type="button">Показать ещё</button>
+    </section>
+
+  </section>
+</main>
+
+<footer class="wrap foot">Данные хранятся только в вашем браузере.</footer>
+
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
