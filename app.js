@@ -117,6 +117,8 @@ let TX = [];       // все операции
 let VIEW = [];     // операции выбранного периода
 let shown = 50;
 let selectedDay = null;  // день, раскрытый под графиком
+let CAT_GROUPS = [];     // категории кольца, от большей к меньшей
+let CAT_TOTAL = 0;
 
 const $ = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Math.round(n)) + ' ֏';
@@ -297,11 +299,8 @@ function groupSum(items, keyFn) {
 
 function renderCategories(outs, total) {
   const groups = groupSum(outs, t => t.cat);
-  const top = groups[0];
-
-  // в центре кольца — доля самой крупной категории
-  $('donutPct').textContent = top ? Math.round(top.sum / total * 100) + '%' : '—';
-  $('donutCap').textContent = top ? top.key : 'нет расходов';
+  CAT_GROUPS = groups;
+  CAT_TOTAL = total;
 
   const donut = $('donut');
   donut.innerHTML = '<circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--track)" stroke-width="5"></circle>';
@@ -310,6 +309,8 @@ function renderCategories(outs, total) {
     const pct = total ? (g.sum / total) * 100 : 0;
     const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     c.setAttribute('cx', '21'); c.setAttribute('cy', '21'); c.setAttribute('r', '15.915');
+    c.setAttribute('class', 'seg');
+    c.dataset.cat = g.key;
     c.setAttribute('fill', 'none');
     c.setAttribute('stroke', catColor(g.key));
     c.setAttribute('stroke-width', '5');
@@ -322,11 +323,46 @@ function renderCategories(outs, total) {
   });
 
   $('catList').innerHTML = groups.map(g => `
-    <li>
+    <li data-cat="${esc(g.key)}">
       <span class="dot" style="background:${catColor(g.key)}"></span>
       <span>${esc(g.key)} <span class="cat-pct">${Math.round(g.sum / total * 100)}%</span></span>
       <span class="cat-sum">${fmt(g.sum)}</span>
     </li>`).join('');
+
+  setDonutFocus(null);
+}
+
+// Наведение на сектор (или на строку легенды) — центр кольца рассказывает про него.
+function setDonutFocus(name) {
+  const g = name ? CAT_GROUPS.find(x => x.key === name) : null;
+  const donut = $('donut');
+  donut.classList.toggle('has-focus', !!g);
+  donut.querySelectorAll('circle.seg').forEach(c => c.classList.toggle('is-focus', !!g && c.dataset.cat === g.key));
+  document.querySelectorAll('#catList li').forEach(li => li.classList.toggle('is-focus', !!g && li.dataset.cat === g.key));
+
+  const show = g || CAT_GROUPS[0];
+  $('donutPct').textContent = show ? Math.round(show.sum / CAT_TOTAL * 100) + '%' : '—';
+  $('donutCap').textContent = show ? show.key : 'нет расходов';
+  $('donutSum').textContent = show ? fmt(show.sum) : '';
+}
+
+// Сектор под курсором считаем по углу: попадание в тонкую дугу мышью ненадёжно.
+function focusFromPoint(e) {
+  const wrap = document.querySelector('.donut-wrap');
+  const r = wrap.getBoundingClientRect();
+  const dx = e.clientX - (r.left + r.width / 2);
+  const dy = e.clientY - (r.top + r.height / 2);
+  const dist = Math.hypot(dx, dy) / (r.width / 2);
+  if (dist > 1 || dist < 0.58) { setDonutFocus(null); return; }
+
+  let frac = Math.atan2(dx, -dy) / (2 * Math.PI);   // доля круга по часовой от 12 часов
+  if (frac < 0) frac += 1;
+  let acc = 0;
+  for (const g of CAT_GROUPS) {
+    acc += CAT_TOTAL ? g.sum / CAT_TOTAL : 0;
+    if (frac <= acc) { setDonutFocus(g.key); return; }
+  }
+  setDonutFocus(null);
 }
 
 function renderMerchants(outs) {
@@ -349,11 +385,27 @@ function renderDays(outs) {
     <button type="button" class="day-col${g.key === selectedDay ? ' is-active' : ''}"
             data-day="${g.key}" aria-pressed="${g.key === selectedDay}"
             title="${fmtDate(g.key)} — ${fmt(g.sum)}">
-      <span class="day-bar" data-h="${(g.sum / max) * 100}"></span>
-      <span class="day-label">${g.key.slice(8, 10)}</span>
+      <span class="day-col-in">
+        <span class="day-bar" data-h="${g.sum / max}"></span>
+        <span class="day-label">${g.key.slice(8, 10)}</span>
+      </span>
     </button>`).join('');
-  requestAnimationFrame(() => {
-    document.querySelectorAll('#dayChart .day-bar').forEach(el => { el.style.height = el.dataset.h + '%'; });
+  requestAnimationFrame(sizeDayBars);
+}
+
+// Высота столбика — в пикселях: в Safari проценты внутри <button> не резолвятся
+// и весь график схлопывался в ноль.
+function sizeDayBars() {
+  const cols = document.querySelectorAll('#dayChart .day-col');
+  if (!cols.length) return;
+  const label = cols[0].querySelector('.day-label');
+  // если браузер отдал нулевые размеры — считаем по заданной в CSS высоте графика
+  const h = cols[0].clientHeight || $('dayChart').clientHeight || 180;
+  const area = h - (label.offsetHeight || 21) - 4;   // 4 — зазор до подписи
+  if (area <= 0) return;
+  cols.forEach(col => {
+    const bar = col.querySelector('.day-bar');
+    bar.style.height = Math.max(3, Math.round(parseFloat(bar.dataset.h) * area)) + 'px';
   });
 }
 
@@ -442,11 +494,29 @@ $('fileList').addEventListener('click', e => {
 ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e => readFiles(e.dataTransfer.files));
 
+const donutWrap = document.querySelector('.donut-wrap');
+let touchFocus = false;   // после касания браузер шлёт mouseleave — иначе выбор сразу слетал бы
+donutWrap.addEventListener('pointerdown', e => { touchFocus = e.pointerType !== 'mouse'; });
+donutWrap.addEventListener('mousemove', focusFromPoint);
+donutWrap.addEventListener('click', focusFromPoint);          // на телефоне — по касанию
+donutWrap.addEventListener('mouseleave', () => { if (!touchFocus) setDonutFocus(null); });
+$('catList').addEventListener('mouseover', e => {
+  const li = e.target.closest('li');
+  if (li) setDonutFocus(li.dataset.cat);
+});
+$('catList').addEventListener('mouseleave', () => setDonutFocus(null));
+
 $('dayChart').addEventListener('click', e => {
   const col = e.target.closest('.day-col');
   if (col) selectDay(col.dataset.day);
 });
 $('dayClose').addEventListener('click', () => selectDay(selectedDay));
+
+let resizeTimer = 0;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(sizeDayBars, 150);
+});
 
 $('monthSelect').addEventListener('change', render);
 $('search').addEventListener('input', () => { shown = 50; renderTable(); });
