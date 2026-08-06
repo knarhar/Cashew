@@ -211,7 +211,8 @@ function runLoader(fileCount, parsing) {
     ? `Разбираем ${plural(fileCount, 'выписку', 'выписки', 'выписок')}`
     : 'Разбираем выписку';
   $('loaderSteps').innerHTML = LOAD_STEPS.map(s =>
-    `<li><span class="loader-tick">•</span><span>${s.text}</span></li>`).join('');
+    `<li><span class="loader-tick"><i class="fa-regular fa-circle" aria-hidden="true"></i></span>
+         <span>${s.text}</span></li>`).join('');
   $('loaderFill').style.width = '0%';
   $('loaderPct').textContent = '0%';
 
@@ -225,10 +226,11 @@ function runLoader(fileCount, parsing) {
     const tick = i => {
       if (i > 0) {
         items[i - 1].classList.replace('is-on', 'is-done');
-        items[i - 1].querySelector('.loader-tick').textContent = '✓';
+        items[i - 1].querySelector('.loader-tick').innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
       }
       if (i === items.length) { setTimeout(resolve, calm ? 60 : 350); return; }
       items[i].classList.add('is-on');
+      items[i].querySelector('.loader-tick').innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
       $('loaderFill').style.width = LOAD_STEPS[i].pct + '%';
       $('loaderPct').textContent = LOAD_STEPS[i].pct + '%';
       setTimeout(() => tick(i + 1), pause);
@@ -241,17 +243,24 @@ function showUploadError(text) {
   const el = $('uploadError');
   el.textContent = text;
   el.classList.remove('hidden');
-  flash(text);
+  flash(text, 'error');
 }
 
-// короткое сообщение над списком выписок
-let flashTimer = 0;
-function flash(text) {
-  const el = $('fileNote');
-  el.textContent = text;
-  el.classList.remove('hidden');
-  clearTimeout(flashTimer);
-  flashTimer = setTimeout(() => el.classList.add('hidden'), 6000);
+// Тост сверху по центру: сообщение не должно двигать вёрстку под собой.
+function flash(text, kind) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind === 'error' ? ' is-error' : '');
+  el.innerHTML = `<i class="fa-solid ${kind === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}"
+                     aria-hidden="true"></i><span>${esc(text)}</span>`;
+  $('toasts').appendChild(el);
+
+  const drop = () => {
+    if (!el.isConnected) return;
+    el.classList.add('is-out');
+    setTimeout(() => el.remove(), 300);
+  };
+  el.addEventListener('click', drop);
+  setTimeout(drop, kind === 'error' ? 6000 : 4000);
 }
 
 function save() {
@@ -276,7 +285,9 @@ function renderFiles() {
           <span class="file-chip-meta">${plural(rows.length, 'операция', 'операции', 'операций')} · ${esc(name)}</span>
         </span>
         <button type="button" class="file-chip-x" data-file="${esc(name)}"
-                title="Убрать эту выписку" aria-label="Убрать выписку ${esc(name)}">✕</button>
+                title="Убрать эту выписку" aria-label="Убрать выписку ${esc(name)}">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
       </li>`;
   }).join('');
 }
@@ -603,7 +614,9 @@ $('resetBtn').addEventListener('click', resetAll);
 
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
-  document.querySelector('#themeBtn .theme-ico').textContent = theme === 'dark' ? '🌙' : '☀️';
+  const ico = document.querySelector('#themeBtn .theme-ico');
+  ico.classList.toggle('fa-moon', theme === 'dark');
+  ico.classList.toggle('fa-sun', theme !== 'dark');
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = theme === 'dark' ? '#12101d' : '#f4f3fb';
   localStorage.setItem(THEME_KEY, theme);

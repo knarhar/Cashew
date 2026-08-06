@@ -5,22 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cashew — трекер расходов по выписке банка</title>
 <meta name="theme-color" content="#12101d">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      referrerpolicy="no-referrer">
+<link rel="stylesheet" href="style.css?v=9">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥜</text></svg>">
 </head>
 <body>
 
 <header class="topbar">
   <div class="wrap topbar-in">
-    <div class="brand"><span class="brand-mark">🥜</span> Cashew<span class="brand-sub">аналитика трат</span></div>
+    <div class="brand"><i class="fa-solid fa-piggy-bank brand-mark" aria-hidden="true"></i> Cashew<span class="brand-sub">аналитика трат</span></div>
     <div class="topbar-actions">
       <button id="themeBtn" class="icon-btn" type="button" aria-label="Переключить тему" title="Светлая / тёмная тема">
-        <span class="theme-ico">🌙</span>
+        <i class="fa-solid fa-moon theme-ico" aria-hidden="true"></i>
       </button>
       <button id="resetBtn" class="btn-ghost hidden" type="button">Очистить всё</button>
     </div>
   </div>
 </header>
+
+<div id="toasts" class="toasts" role="status" aria-live="polite"></div>
 
 <main class="wrap">
 
@@ -33,7 +37,7 @@
       в браузере и никуда не отправляются.</p>
 
     <label id="drop" class="drop" for="fileInput" tabindex="0">
-      <span class="drop-icon">📄</span>
+      <i class="fa-solid fa-file-arrow-up drop-icon" aria-hidden="true"></i>
       <span class="drop-title">Перетащите файлы сюда</span>
       <span class="drop-sub">или нажмите, чтобы выбрать · можно несколько · .xlsx, .xls, .csv</span>
     </label>
@@ -44,7 +48,7 @@
   <!-- ЭКРАН 1.5: разбор выписки -->
   <section id="loaderView" class="loader hidden" role="status" aria-live="polite">
     <div class="loader-card">
-      <span class="loader-mark">🥜</span>
+      <i class="fa-solid fa-piggy-bank loader-mark" aria-hidden="true"></i>
       <p id="loaderTitle" class="loader-title">Разбираем выписку</p>
       <div class="loader-track"><div id="loaderFill" class="loader-fill"></div></div>
       <p id="loaderPct" class="loader-pct">0%</p>
@@ -69,9 +73,8 @@
     <section class="panel file-panel">
       <div class="panel-head">
         <h2>Загруженные выписки</h2>
-        <label class="btn-ghost add-btn" for="fileInput">＋ Добавить выписку</label>
+        <label class="btn-ghost add-btn" for="fileInput"><i class="fa-solid fa-plus" aria-hidden="true"></i> Добавить выписку</label>
       </div>
-      <p id="fileNote" class="file-note hidden"></p>
       <ul id="fileList" class="file-list"></ul>
     </section>
 
@@ -171,6 +174,6 @@
 <footer class="wrap foot">Данные хранятся только в вашем браузере.</footer>
 
 <script src="vendor/xlsx.full.min.js"></script>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
