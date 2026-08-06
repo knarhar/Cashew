@@ -748,7 +748,7 @@ function applyTheme(theme) {
   ico.classList.toggle('fa-moon', theme === 'dark');
   ico.classList.toggle('fa-sun', theme !== 'dark');
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = theme === 'dark' ? '#12101d' : '#f4f3fb';
+  if (meta) meta.content = theme === 'dark' ? '#232131' : '#e8e6f3';
   localStorage.setItem(THEME_KEY, theme);
 }
 
