@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#12101d">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
       referrerpolicy="no-referrer">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥜</text></svg>">
 </head>
 <body>
@@ -101,6 +101,31 @@
       </article>
     </div>
 
+    <section class="panel goal-panel">
+      <div class="panel-head">
+        <h2>Цель накопления</h2>
+        <span class="muted">прогноз по вашим выпискам</span>
+      </div>
+      <div class="goal-form">
+        <label class="field goal-field">
+          <span>Хочу накопить</span>
+          <span class="money-input">
+            <input id="goalAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="500 000">
+            <span class="money-cur" aria-hidden="true">֏</span>
+          </span>
+        </label>
+        <label class="field goal-field">
+          <span>Откладываю в месяц</span>
+          <span class="money-input">
+            <input id="goalMonthly" type="text" inputmode="numeric" autocomplete="off">
+            <span class="money-cur" aria-hidden="true">֏</span>
+          </span>
+        </label>
+      </div>
+      <p id="goalHint" class="goal-hint"></p>
+      <div id="goalResult" class="goal-result" aria-live="polite"></div>
+    </section>
+
     <div class="grid-2">
       <section class="panel">
         <h2>По категориям</h2>
@@ -174,6 +199,6 @@
 <footer class="wrap foot">Данные хранятся только в вашем браузере.</footer>
 
 <script src="vendor/xlsx.full.min.js"></script>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

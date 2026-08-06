@@ -249,6 +249,40 @@ select:focus, input[type="search"]:focus { border-color: var(--accent); box-shad
 }
 .file-chip-x:hover { background: var(--accent-soft); color: var(--expense); }
 
+/* ---- цель накопления ---- */
+.goal-panel .panel-head { margin-bottom: 16px; }
+.goal-form { display: flex; gap: 16px; flex-wrap: wrap; }
+.goal-field { flex: 1 1 240px; min-width: 0; }
+.money-input { position: relative; display: block; }
+.money-input input {
+  font: inherit; font-size: 16px; font-family: var(--mono); font-variant-numeric: tabular-nums;
+  width: 100%; color: var(--text); background-color: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 10px 36px 10px 12px; min-height: 44px;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.money-input input:hover { border-color: var(--accent); }
+.money-input input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); outline: none; }
+.money-cur {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-family: var(--mono); pointer-events: none;
+}
+.goal-hint { font-size: 14px; color: var(--muted); margin: 12px 0 0; max-width: 62ch; }
+.goal-result { margin-top: 16px; }
+.goal-empty { font-size: 16px; color: var(--muted); margin: 0; max-width: 62ch; }
+/* заголовок — обычным шрифтом: это фраза, а не число, моноширинный её растягивает */
+.goal-big { font-size: 32px; font-weight: 600; line-height: 1.25; letter-spacing: -.02em; color: var(--accent); margin: 0 0 4px; }
+.goal-date { margin: 0 0 16px; }
+.goal-date b, .goal-note b { font-family: var(--mono); font-weight: 600; }
+.goal-track { height: 8px; background: var(--track); border-radius: 3px; overflow: hidden; }
+.goal-fill {
+  display: block; height: 100%; width: 0; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent-strong), var(--accent));
+  transition: width 1s cubic-bezier(.4, 0, .2, 1);
+}
+.goal-ends { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--muted); margin-top: 4px; }
+.goal-note { font-size: 14px; color: var(--muted); margin: 12px 0 0; }
+
 /* ---- кольцо категорий ---- */
 .donut-row { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
 .donut-wrap { position: relative; width: 180px; height: 180px; flex: none; }

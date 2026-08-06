@@ -4,6 +4,7 @@
 
 const STORE_KEY = 'cashew.tx.v1';
 const THEME_KEY = 'cashew.theme';
+const GOAL_KEY = 'cashew.goal.v1';
 
 /* ---------- категории ---------- */
 
@@ -130,11 +131,14 @@ const plural = (n, one, few, many) => {
   return `${n} ${many}`;
 };
 const fmtDate = iso => iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' + iso.slice(0, 4);
+const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+// дательный падеж — для «накопите к апрелю 2027»
+const MONTHS_TO = ['январю', 'февралю', 'марту', 'апрелю', 'маю', 'июню', 'июлю', 'августу', 'сентябрю', 'октябрю', 'ноябрю', 'декабрю'];
 const monthName = key => {
-  const names = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
   const [y, m] = key.split('-');
-  return names[+m - 1] + ' ' + y;
+  return MONTHS[+m - 1] + ' ' + y;
 };
+const grp = n => new Intl.NumberFormat('ru-RU').format(n);
 
 /* ---------- загрузка файлов ---------- */
 
@@ -360,11 +364,126 @@ function render() {
   $('avgDay').textContent = fmt(totalOut / days);
   $('avgNote').textContent = `за ${plural(days, 'день', 'дня', 'дней')} с тратами`;
 
+  renderGoal();
   renderCategories(outs, totalOut);
   renderMerchants(outs);
   renderDays(outs);
   renderDayDetail();
   renderTable();
+}
+
+/* ---------- цель накопления ---------- */
+
+const DAY_MS = 86400000;
+const MONTH_DAYS = 30.44;   // средняя длина месяца
+
+// Темп считаем по всем выпискам, а не по выбранному месяцу: чем больше данных,
+// тем осмысленнее прогноз. Делим на дни, а не на месяцы — выписка может
+// покрывать неполный период.
+function savingsStats() {
+  if (!TX.length) return null;
+  const dates = TX.map(t => t.date).sort();
+  const first = dates[0], last = dates[dates.length - 1];
+  const days = Math.max(1, Math.round((Date.parse(last) - Date.parse(first)) / DAY_MS) + 1);
+  const income = TX.filter(t => t.type === 'in').reduce((s, t) => s + t.amount, 0);
+  const expense = TX.filter(t => t.type === 'out').reduce((s, t) => s + t.amount, 0);
+  return { days, net: income - expense, perMonth: (income - expense) / days * MONTH_DAYS };
+}
+
+function humanSpan(months) {
+  if (months < 1) {
+    const w = Math.max(1, Math.round(months * 4.35));
+    return plural(w, 'неделя', 'недели', 'недель');
+  }
+  const total = Math.round(months);
+  if (total < 12) return plural(total, 'месяц', 'месяца', 'месяцев');
+  const y = Math.floor(total / 12), rest = total % 12;
+  return plural(y, 'год', 'года', 'лет') + (rest ? ' и ' + plural(rest, 'месяц', 'месяца', 'месяцев') : '');
+}
+
+function goalValue(el) {
+  const digits = el.value.replace(/\D/g, '');
+  return digits ? +digits : 0;
+}
+
+// Разряды проставляем прямо во время набора, каретку возвращаем на то же
+// количество цифр — иначе она прыгает в конец при правке середины.
+function formatMoney(el) {
+  const typed = (el.value.slice(0, el.selectionStart ?? el.value.length).match(/\d/g) || []).length;
+  const digits = el.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 12);
+  el.value = digits ? grp(+digits) : '';
+  let pos = 0, seen = 0;
+  while (pos < el.value.length && seen < typed) {
+    if (/\d/.test(el.value[pos])) seen++;
+    pos++;
+  }
+  try { el.setSelectionRange(pos, pos); } catch (e) { /* поле не в фокусе */ }
+}
+
+function saveGoal() {
+  try {
+    localStorage.setItem(GOAL_KEY, JSON.stringify({
+      amount: goalValue($('goalAmount')),
+      monthly: goalValue($('goalMonthly')),
+    }));
+  } catch (e) { console.error('Не удалось сохранить цель', e); }
+}
+
+function loadGoal() {
+  try {
+    const g = JSON.parse(localStorage.getItem(GOAL_KEY) || 'null');
+    if (!g) return;
+    if (g.amount) $('goalAmount').value = grp(g.amount);
+    if (g.monthly) $('goalMonthly').value = grp(g.monthly);
+  } catch (e) { /* цели нет */ }
+}
+
+function renderGoal() {
+  const st = savingsStats();
+  const avg = st && st.perMonth > 0 ? st.perMonth : 0;
+
+  $('goalMonthly').placeholder = avg ? grp(Math.round(avg)) : 'например, 50 000';
+  $('goalHint').textContent = avg
+    ? `В среднем у вас остаётся ${fmt(avg)} в месяц — по выпискам за ${plural(st.days, 'день', 'дня', 'дней')}.`
+      + (st.days < 30 ? ' Данных пока мало, прогноз грубый.' : '')
+    : 'По выпискам расходы больше доходов, среднего темпа накоплений нет — укажите, сколько готовы откладывать.';
+
+  const box = $('goalResult');
+  const target = goalValue($('goalAmount'));
+  const rate = goalValue($('goalMonthly')) || avg;
+
+  if (!target) {
+    box.innerHTML = '<p class="goal-empty">Введите сумму — посчитаем, сколько времени на неё уйдёт.</p>';
+    return;
+  }
+  if (rate <= 0) {
+    box.innerHTML = '<p class="goal-empty">Пока вы тратите больше, чем зарабатываете, срок посчитать нельзя. '
+      + 'Впишите сумму, которую готовы откладывать каждый месяц.</p>';
+    return;
+  }
+
+  const months = target / rate;
+  if (months > 600) {
+    box.innerHTML = `<p class="goal-empty">При темпе ${fmt(rate)} в месяц на эту сумму уйдёт больше 50 лет. `
+      + 'Попробуйте цель поменьше или увеличьте ежемесячный взнос.</p>';
+    return;
+  }
+
+  const when = new Date(Date.now() + Math.ceil(months * MONTH_DAYS) * DAY_MS);
+  const key = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, '0')}`;
+  const fromAvg = !goalValue($('goalMonthly'));
+
+  box.innerHTML = `
+    <p class="goal-big">≈ ${humanSpan(months)}</p>
+    <p class="goal-date">Накопите <b>${fmt(target)}</b> примерно
+       к ${MONTHS_TO[when.getMonth()]} ${when.getFullYear()} года</p>
+    <div class="goal-track"><span class="goal-fill"></span></div>
+    <div class="goal-ends"><span>сегодня</span><span>${monthName(key).toLowerCase()}</span></div>
+    <p class="goal-note">Если откладывать <b>${fmt(rate)}</b> в месяц${fromAvg ? ' — как сейчас' : ''}.</p>`;
+  requestAnimationFrame(() => {
+    const fill = box.querySelector('.goal-fill');
+    if (fill) fill.style.width = '100%';
+  });
 }
 
 function groupSum(items, keyFn) {
@@ -594,6 +713,14 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(sizeDayBars, 150);
 });
 
+['goalAmount', 'goalMonthly'].forEach(id => {
+  $(id).addEventListener('input', e => {
+    formatMoney(e.target);
+    saveGoal();
+    renderGoal();
+  });
+});
+
 $('monthSelect').addEventListener('change', render);
 $('search').addEventListener('input', () => { shown = 50; renderTable(); });
 $('catFilter').addEventListener('change', () => { shown = 50; renderTable(); });
@@ -601,9 +728,12 @@ $('typeFilter').addEventListener('change', () => { shown = 50; renderTable(); })
 $('moreBtn').addEventListener('click', () => { shown += 50; renderTable(); });
 function resetAll() {
   localStorage.removeItem(STORE_KEY);
+  localStorage.removeItem(GOAL_KEY);
   TX = [];
   selectedDay = null;
   $('fileInput').value = '';
+  $('goalAmount').value = '';
+  $('goalMonthly').value = '';
   $('dashView').classList.add('hidden');
   $('resetBtn').classList.add('hidden');
   $('uploadView').classList.remove('hidden');
@@ -632,6 +762,7 @@ applyTheme(
 );
 
 /* восстановление ранее загруженных выписок */
+loadGoal();
 try {
   const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
   if (Array.isArray(saved) && saved.length) {
