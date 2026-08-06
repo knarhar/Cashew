@@ -1,8 +1,8 @@
 /* Cashew — тёмная и светлая темы одной аналитической панели. */
 
 :root {
-  --radius: 18px;
-  --radius-sm: 12px;
+  --radius: 12px;
+  --radius-sm: 8px;
   --font: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --mono: "JetBrains Mono", "SF Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
@@ -49,6 +49,22 @@ html[data-theme="light"] {
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
+
+/* тонкий скролл в цвет темы — вместо системного серого со стрелками.
+   scrollbar-width отключает ::-webkit-scrollbar в Chrome, поэтому стандартные
+   свойства даём только браузерам без веб-китовых псевдоэлементов (Firefox). */
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) var(--track); }
+}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--track); border-radius: 999px; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 999px; transition: background .2s ease;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+::-webkit-scrollbar-corner { background: transparent; }
 
 body {
   margin: 0;
@@ -124,11 +140,29 @@ p { margin: 0 0 12px; }
 .dash-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
 select, input[type="search"] {
-  font: inherit; font-size: 16px; color: var(--text); background: var(--surface);
+  font: inherit; font-size: 16px; color: var(--text); background-color: var(--surface);
   border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; min-height: 44px;
   transition: border-color .2s ease, box-shadow .2s ease;
 }
+input[type="search"] { -webkit-appearance: none; appearance: none; }
+input::placeholder { color: var(--muted); opacity: 1; }
+
+/* системная стрелка у select везде выглядит по-разному — рисуем свою */
+select {
+  -webkit-appearance: none; -moz-appearance: none; appearance: none;
+  padding-right: 40px; cursor: pointer;
+  background-repeat: no-repeat; background-position: right 14px center; background-size: 14px 14px;
+}
+select::-ms-expand { display: none; }
+html[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a9a2cf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6l5 5 5-5'/%3E%3C/svg%3E");
+}
+html[data-theme="light"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%235d5686' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6l5 5 5-5'/%3E%3C/svg%3E");
+}
+select option { background: var(--surface); color: var(--text); }
 select:hover, input[type="search"]:hover { border-color: var(--accent); }
+select:focus, input[type="search"]:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); outline: none; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---- карточки ---- */
@@ -213,7 +247,7 @@ select:hover, input[type="search"]:hover { border-color: var(--accent); }
 }
 
 /* ---- график по дням ---- */
-.chart-scroll { overflow-x: auto; padding-bottom: 4px; }
+.chart-scroll { overflow-x: auto; padding-bottom: 8px; }
 .day-chart { display: flex; align-items: flex-end; gap: 4px; height: 180px; min-width: 100%; }
 .day-col {
   flex: 1 1 16px; min-width: 20px; height: 100%; padding: 0; cursor: pointer;
@@ -223,7 +257,7 @@ select:hover, input[type="search"]:hover { border-color: var(--accent); }
 }
 .day-col:hover { background: var(--accent-soft); }
 .day-bar {
-  height: 0; min-height: 3px; border-radius: 6px 6px 2px 2px;
+  height: 0; min-height: 3px; border-radius: 4px 4px 2px 2px;
   background: linear-gradient(180deg, var(--accent), var(--accent-strong));
   opacity: .55;
   transition: height .8s cubic-bezier(.4, 0, .2, 1), opacity .2s ease, box-shadow .2s ease;
@@ -249,8 +283,11 @@ select:hover, input[type="search"]:hover { border-color: var(--accent); }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 /* ---- таблица ---- */
-.filters { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
-.filters input { flex: 1 1 220px; }
+.filters { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0 12px; }
+.filters input { flex: 1 1 220px; min-width: 0; }
+.filters select { flex: 0 1 200px; }
+.tx-summary { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 14px; color: var(--muted); margin: 0 0 8px; }
+.tx-summary b { font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums; }
 .table-scroll { overflow-x: auto; }
 table.tx { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.tx th { text-align: left; font-weight: 500; color: var(--muted); padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -284,6 +321,7 @@ table.tx tbody tr:hover td { background: var(--surface-2); }
   .panel { padding: 16px; }
   .brand-sub { display: none; }
   .donut-row { justify-content: center; }
+  .filters select { flex: 1 1 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before { transition: none !important; animation: none !important; }

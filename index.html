@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cashew — трекер расходов по выписке банка</title>
 <meta name="theme-color" content="#12101d">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=5">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥜</text></svg>">
 </head>
 <body>
@@ -134,8 +134,14 @@
       </div>
       <div class="filters">
         <input id="search" type="search" placeholder="Поиск по названию…" aria-label="Поиск по операциям">
+        <select id="typeFilter" aria-label="Доходы или расходы">
+          <option value="all">Доходы и расходы</option>
+          <option value="in">Только доходы</option>
+          <option value="out">Только расходы</option>
+        </select>
         <select id="catFilter" aria-label="Фильтр по категории"></select>
       </div>
+      <p id="txSummary" class="tx-summary"></p>
       <div class="table-scroll">
         <table class="tx">
           <thead><tr><th>Дата</th><th>Операция</th><th>Категория</th><th class="right">Сумма</th></tr></thead>
@@ -153,6 +159,6 @@
 <footer class="wrap foot">Данные хранятся только в вашем браузере.</footer>
 
 <script src="vendor/xlsx.full.min.js"></script>
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

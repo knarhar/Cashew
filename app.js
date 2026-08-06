@@ -240,7 +240,8 @@ function showDashboard() {
 
   renderFiles();
 
-  const cats = [...new Set(TX.filter(t => t.type === 'out').map(t => t.cat))].sort();
+  // в фильтре нужны категории и доходов тоже — таблица показывает оба типа
+  const cats = [...new Set(TX.map(t => t.cat))].sort();
   const cf = $('catFilter');
   cf.innerHTML = '';
   cf.append(new Option('Все категории', 'all'));
@@ -393,10 +394,22 @@ function renderDayDetail() {
 function renderTable() {
   const q = $('search').value.trim().toLowerCase();
   const cat = $('catFilter').value;
+  const type = $('typeFilter').value;
   const list = VIEW.filter(t =>
+    (type === 'all' || t.type === type) &&
     (cat === 'all' || t.cat === cat) &&
     (!q || t.merchant.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q))
   );
+
+  // итог по тому, что сейчас в таблице, — чтобы фильтр сразу отвечал «сколько это»
+  const inSum = list.filter(t => t.type === 'in').reduce((s, t) => s + t.amount, 0);
+  const outSum = list.filter(t => t.type === 'out').reduce((s, t) => s + t.amount, 0);
+  const money = n => `<b class="${n > 0 ? 'income' : n < 0 ? 'expense' : ''}">${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}</b>`;
+  $('txSummary').innerHTML = list.length
+    ? `<span>Доходы: ${money(inSum)}</span>
+       <span>Расходы: ${money(-outSum)}</span>
+       <span>Разница: ${money(inSum - outSum)}</span>`
+    : '<span>Ничего не найдено — попробуйте изменить фильтр.</span>';
 
   $('txCount').textContent = plural(list.length, 'операция', 'операции', 'операций');
   $('txBody').innerHTML = list.slice(0, shown).map(t => `
@@ -438,6 +451,7 @@ $('dayClose').addEventListener('click', () => selectDay(selectedDay));
 $('monthSelect').addEventListener('change', render);
 $('search').addEventListener('input', () => { shown = 50; renderTable(); });
 $('catFilter').addEventListener('change', () => { shown = 50; renderTable(); });
+$('typeFilter').addEventListener('change', () => { shown = 50; renderTable(); });
 $('moreBtn').addEventListener('click', () => { shown += 50; renderTable(); });
 function resetAll() {
   localStorage.removeItem(STORE_KEY);
