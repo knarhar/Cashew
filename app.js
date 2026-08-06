@@ -143,10 +143,15 @@ function readFiles(fileList) {
   if (!files.length) return;
   $('uploadError').classList.add('hidden');
 
-  Promise.all(files.map(f => f.arrayBuffer().then(buf => {
+  const parsing = Promise.all(files.map(f => f.arrayBuffer().then(buf => {
     try { return parseWorkbook(new Uint8Array(buf), f.name); }
     catch (e) { console.error(e); return []; }
-  }))).then(results => {
+  })));
+
+  // Разбор занимает доли секунды, но пустой экран выглядит как «ничего не произошло»,
+  // поэтому показываем прогресс и ждём обоих: и файла, и анимации.
+  Promise.all([parsing, runLoader(files.length, parsing)]).then(([results]) => {
+    hideLoader();
     const rows = results.flat();
     if (!rows.length) {
       showUploadError('Не удалось найти операции в файле. Загрузите выписку банка в формате .xlsx — с колонками «Дата», «Мутք/Ելք» и описанием операции.');
@@ -169,6 +174,66 @@ function readFiles(fileList) {
     flash(rows.length - fresh.length
       ? `Добавлено ${plural(fresh.length, 'операция', 'операции', 'операций')}, ${rows.length - fresh.length} уже были загружены`
       : `Добавлено ${plural(fresh.length, 'операция', 'операции', 'операций')}`);
+  });
+}
+
+/* ---- экран разбора ---- */
+
+const LOAD_STEPS = [
+  { text: 'Читаем файл',                pct: 20 },
+  { text: 'Ищем операции',              pct: 50 },
+  { text: 'Раскладываем по категориям', pct: 78 },
+  { text: 'Считаем итоги',              pct: 100 },
+];
+
+let loaderBack = 'upload';   // куда вернуться, если разбор не удался
+
+function showLoader() {
+  loaderBack = $('dashView').classList.contains('hidden') ? 'upload' : 'dash';
+  $('uploadView').classList.add('hidden');
+  $('dashView').classList.add('hidden');
+  $('loaderView').classList.remove('hidden');
+}
+
+function hideLoader() {
+  $('loaderView').classList.add('hidden');
+  $(loaderBack === 'dash' ? 'dashView' : 'uploadView').classList.remove('hidden');
+}
+
+// Прогресс по шагам: разбор идёт параллельно, экран просто не даёт данным
+// появиться рывком. Весь показ — около трёх секунд.
+function runLoader(fileCount, parsing) {
+  showLoader();
+  const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const pause = calm ? 120 : 700;
+
+  $('loaderTitle').textContent = fileCount > 1
+    ? `Разбираем ${plural(fileCount, 'выписку', 'выписки', 'выписок')}`
+    : 'Разбираем выписку';
+  $('loaderSteps').innerHTML = LOAD_STEPS.map(s =>
+    `<li><span class="loader-tick">•</span><span>${s.text}</span></li>`).join('');
+  $('loaderFill').style.width = '0%';
+  $('loaderPct').textContent = '0%';
+
+  const items = [...document.querySelectorAll('#loaderSteps li')];
+  parsing.then(res => {
+    const n = res.flat().length;
+    if (n) items[1].lastElementChild.textContent = `Ищем операции · нашли ${n}`;
+  });
+
+  return new Promise(resolve => {
+    const tick = i => {
+      if (i > 0) {
+        items[i - 1].classList.replace('is-on', 'is-done');
+        items[i - 1].querySelector('.loader-tick').textContent = '✓';
+      }
+      if (i === items.length) { setTimeout(resolve, calm ? 60 : 350); return; }
+      items[i].classList.add('is-on');
+      $('loaderFill').style.width = LOAD_STEPS[i].pct + '%';
+      $('loaderPct').textContent = LOAD_STEPS[i].pct + '%';
+      setTimeout(() => tick(i + 1), pause);
+    };
+    tick(0);
   });
 }
 

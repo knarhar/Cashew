@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cashew — трекер расходов по выписке банка</title>
 <meta name="theme-color" content="#12101d">
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥜</text></svg>">
 </head>
 <body>
@@ -39,6 +39,17 @@
     </label>
 
     <p id="uploadError" class="error hidden"></p>
+  </section>
+
+  <!-- ЭКРАН 1.5: разбор выписки -->
+  <section id="loaderView" class="loader hidden" role="status" aria-live="polite">
+    <div class="loader-card">
+      <span class="loader-mark">🥜</span>
+      <p id="loaderTitle" class="loader-title">Разбираем выписку</p>
+      <div class="loader-track"><div id="loaderFill" class="loader-fill"></div></div>
+      <p id="loaderPct" class="loader-pct">0%</p>
+      <ul id="loaderSteps" class="loader-steps"></ul>
+    </div>
   </section>
 
   <!-- ЭКРАН 2: дашборд -->
@@ -160,6 +171,6 @@
 <footer class="wrap foot">Данные хранятся только в вашем браузере.</footer>
 
 <script src="vendor/xlsx.full.min.js"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
