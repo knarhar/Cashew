@@ -3,23 +3,24 @@
 'use strict';
 
 const STORE_KEY = 'cashew.tx.v1';
-const THEME_KEY = 'cashew.theme';
 const GOAL_KEY = 'cashew.goal.v1';
 
 /* ---------- категории ---------- */
 
+// Цвета — не радуга, а одна тёплая шкала от сиены к персику плюс нейтральные
+// серые: палитра стиля ахроматична, цвет в ней только коричнево-персиковый.
 const CATEGORIES = [
-  { name: 'Транспорт',          color: '#60a5fa', rx: /TELCELL TRANSPORT|YANDEX\.? ?GO|GG TAXI|UTAXI|METRO|BUS/i },
-  { name: 'Продукты',           color: '#34d399', rx: /ORANGE MARKET|APRICOT MARKET|SAS |SAS-|YEREVAN CITY|SUPERMARKET|PRIME FARM|HAYR U VORDI|MARKET|GROCER|CARREFOUR|EVRIKA/i },
-  { name: 'Кафе и рестораны',   color: '#fb923c', rx: /COFFEE|KFC|SANDWICH|FOODICTED|YANDEX EATS|MOKA POT|CAFE|PIZZA|BURGER|RESTAURANT|BAR |DODO|TASHIR/i },
-  { name: 'Подписки и игры',    color: '#a78bfa', rx: /STEAM|DISCORD|SPOTIFY|NETFLIX|APPLE\.COM|GOOGLE ?\*|YOUTUBE|PATREON|OPENAI|CLAUDE|ANTHROPIC/i },
-  { name: 'Связь и интернет',   color: '#22d3ee', rx: /UCOM|VIVA|TEAM ?TELECOM|BEELINE|ROSTELECOM|INTERNET/i },
-  { name: 'Покупки',            color: '#f472b6', rx: /WILDBERRIES|OZON|ALIEXPRESS|ZARA|LC ?WAIKIKI|H&M|WL ?\*|SHOP|STORE|GLIDE ADVENTURES|CJ /i },
-  { name: 'Здоровье и красота', color: '#fb7185', rx: /PHARM|GEDEON RICHTER|APTEK|DENTAL|CLINIC|MEDIC|NATALI|BEAUTY|SALON/i },
-  { name: 'Переводы и счета',   color: '#64748b', rx: /փոխանցում|համալրում|TRANSFER|CASH|ATM|Կանխիկ/i },
-  { name: 'Комиссии и налоги',  color: '#eab308', rx: /Հարկ|Tax|միջնորդավճար|COMMISSION|FEE/i },
+  { name: 'Транспорт',          color: '#5d2a1a', rx: /TELCELL TRANSPORT|YANDEX\.? ?GO|GG TAXI|UTAXI|METRO|BUS/i },
+  { name: 'Продукты',           color: '#8c4426', rx: /ORANGE MARKET|APRICOT MARKET|SAS |SAS-|YEREVAN CITY|SUPERMARKET|PRIME FARM|HAYR U VORDI|MARKET|GROCER|CARREFOUR|EVRIKA/i },
+  { name: 'Кафе и рестораны',   color: '#b56a3c', rx: /COFFEE|KFC|SANDWICH|FOODICTED|YANDEX EATS|MOKA POT|CAFE|PIZZA|BURGER|RESTAURANT|BAR |DODO|TASHIR/i },
+  { name: 'Подписки и игры',    color: '#d99a68', rx: /STEAM|DISCORD|SPOTIFY|NETFLIX|APPLE\.COM|GOOGLE ?\*|YOUTUBE|PATREON|OPENAI|CLAUDE|ANTHROPIC/i },
+  { name: 'Связь и интернет',   color: '#c9a08a', rx: /UCOM|VIVA|TEAM ?TELECOM|BEELINE|ROSTELECOM|INTERNET/i },
+  { name: 'Покупки',            color: '#17191c', rx: /WILDBERRIES|OZON|ALIEXPRESS|ZARA|LC ?WAIKIKI|H&M|WL ?\*|SHOP|STORE|GLIDE ADVENTURES|CJ /i },
+  { name: 'Здоровье и красота', color: '#4a4d55', rx: /PHARM|GEDEON RICHTER|APTEK|DENTAL|CLINIC|MEDIC|NATALI|BEAUTY|SALON/i },
+  { name: 'Переводы и счета',   color: '#777b86', rx: /փոխանցում|համալրում|TRANSFER|CASH|ATM|Կանխիկ/i },
+  { name: 'Комиссии и налоги',  color: '#a3a6af', rx: /Հարկ|Tax|միջնորդավճար|COMMISSION|FEE/i },
 ];
-const OTHER = { name: 'Другое', color: '#8b95b8' };
+const OTHER = { name: 'Другое', color: '#b8bac0' };
 
 function categorize(desc) {
   for (const c of CATEGORIES) if (c.rx.test(desc)) return c.name;
@@ -739,27 +740,6 @@ function resetAll() {
   $('uploadView').classList.remove('hidden');
 }
 $('resetBtn').addEventListener('click', resetAll);
-
-/* ---------- тема ---------- */
-
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  const ico = document.querySelector('#themeBtn .theme-ico');
-  ico.classList.toggle('fa-moon', theme === 'dark');
-  ico.classList.toggle('fa-sun', theme !== 'dark');
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = theme === 'dark' ? '#232131' : '#e8e6f3';
-  localStorage.setItem(THEME_KEY, theme);
-}
-
-$('themeBtn').addEventListener('click', () => {
-  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
-});
-
-applyTheme(
-  localStorage.getItem(THEME_KEY) ||
-  (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
-);
 
 /* восстановление ранее загруженных выписок */
 loadGoal();
