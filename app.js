@@ -5,6 +5,7 @@
 const STORE_KEY = 'cashew.tx.v1';
 const GOAL_KEY = 'cashew.goal.v1';
 const THEME_KEY = 'cashew.theme';
+const LANG_KEY = 'cashew.lang';
 
 /* ---------- категории ---------- */
 
@@ -12,21 +13,25 @@ const THEME_KEY = 'cashew.theme';
 // серые: палитра стиля ахроматична, цвет в ней только коричнево-персиковый.
 // Для тёмной темы шкала перевёрнута — на чёрном светлое видно, тёмное нет.
 const CATEGORIES = [
-  { name: 'Транспорт',          color: '#5d2a1a', dark: '#fbe1d1', rx: /TELCELL TRANSPORT|YANDEX\.? ?GO|GG TAXI|UTAXI|METRO|BUS/i },
-  { name: 'Продукты',           color: '#8c4426', dark: '#e8b48d', rx: /ORANGE MARKET|APRICOT MARKET|SAS |SAS-|YEREVAN CITY|SUPERMARKET|PRIME FARM|HAYR U VORDI|MARKET|GROCER|CARREFOUR|EVRIKA/i },
-  { name: 'Кафе и рестораны',   color: '#b56a3c', dark: '#d99a68', rx: /COFFEE|KFC|SANDWICH|FOODICTED|YANDEX EATS|MOKA POT|CAFE|PIZZA|BURGER|RESTAURANT|BAR |DODO|TASHIR/i },
-  { name: 'Подписки и игры',    color: '#d99a68', dark: '#b56a3c', rx: /STEAM|DISCORD|SPOTIFY|NETFLIX|APPLE\.COM|GOOGLE ?\*|YOUTUBE|PATREON|OPENAI|CLAUDE|ANTHROPIC/i },
-  { name: 'Связь и интернет',   color: '#c9a08a', dark: '#8c4426', rx: /UCOM|VIVA|TEAM ?TELECOM|BEELINE|ROSTELECOM|INTERNET/i },
-  { name: 'Покупки',            color: '#17191c', dark: '#f2f2f3', rx: /WILDBERRIES|OZON|ALIEXPRESS|ZARA|LC ?WAIKIKI|H&M|WL ?\*|SHOP|STORE|GLIDE ADVENTURES|CJ /i },
-  { name: 'Здоровье и красота', color: '#4a4d55', dark: '#c7cad1', rx: /PHARM|GEDEON RICHTER|APTEK|DENTAL|CLINIC|MEDIC|NATALI|BEAUTY|SALON/i },
-  { name: 'Переводы и счета',   color: '#777b86', dark: '#9ba0aa', rx: /փոխանցում|համալրում|TRANSFER|CASH|ATM|Կանխիկ/i },
-  { name: 'Комиссии и налоги',  color: '#a3a6af', dark: '#767b85', rx: /Հարկ|Tax|միջնորդավճար|COMMISSION|FEE/i },
+  { id: 'transport', name: 'Транспорт',          color: '#5d2a1a', dark: '#fbe1d1', rx: /TELCELL TRANSPORT|YANDEX\.? ?GO|GG TAXI|UTAXI|METRO|BUS/i },
+  { id: 'food',      name: 'Продукты',           color: '#8c4426', dark: '#e8b48d', rx: /ORANGE MARKET|APRICOT MARKET|SAS |SAS-|YEREVAN CITY|SUPERMARKET|PRIME FARM|HAYR U VORDI|MARKET|GROCER|CARREFOUR|EVRIKA/i },
+  { id: 'cafe',      name: 'Кафе и рестораны',   color: '#b56a3c', dark: '#d99a68', rx: /COFFEE|KFC|SANDWICH|FOODICTED|YANDEX EATS|MOKA POT|CAFE|PIZZA|BURGER|RESTAURANT|BAR |DODO|TASHIR/i },
+  { id: 'subs',      name: 'Подписки и игры',    color: '#d99a68', dark: '#b56a3c', rx: /STEAM|DISCORD|SPOTIFY|NETFLIX|APPLE\.COM|GOOGLE ?\*|YOUTUBE|PATREON|OPENAI|CLAUDE|ANTHROPIC/i },
+  { id: 'telecom',   name: 'Связь и интернет',   color: '#c9a08a', dark: '#8c4426', rx: /UCOM|VIVA|TEAM ?TELECOM|BEELINE|ROSTELECOM|INTERNET/i },
+  { id: 'shop',      name: 'Покупки',            color: '#17191c', dark: '#f2f2f3', rx: /WILDBERRIES|OZON|ALIEXPRESS|ZARA|LC ?WAIKIKI|H&M|WL ?\*|SHOP|STORE|GLIDE ADVENTURES|CJ /i },
+  { id: 'health',    name: 'Здоровье и красота', color: '#4a4d55', dark: '#c7cad1', rx: /PHARM|GEDEON RICHTER|APTEK|DENTAL|CLINIC|MEDIC|NATALI|BEAUTY|SALON/i },
+  { id: 'transfer',  name: 'Переводы и счета',   color: '#777b86', dark: '#9ba0aa', rx: /փոխանցում|համալրում|TRANSFER|CASH|ATM|Կանխիկ/i },
+  { id: 'fees',      name: 'Комиссии и налоги',  color: '#a3a6af', dark: '#767b85', rx: /Հարկ|Tax|միջնորդավճար|COMMISSION|FEE/i },
 ];
-const OTHER = { name: 'Другое', color: '#b8bac0', dark: '#5a5f68' };
+const OTHER = { id: 'other', name: 'Другое', color: '#b8bac0', dark: '#5a5f68' };
 
 function categorize(desc) {
   for (const c of CATEGORIES) if (c.rx.test(desc)) return c.name;
   return OTHER.name;
+}
+// name — ключ, под которым категория лежит в сохранённых выписках; на экран идёт перевод
+function catLabel(name) {
+  return tr('cats')[(CATEGORIES.find(x => x.name === name) || OTHER).id];
 }
 function catColor(name) {
   const c = CATEGORIES.find(x => x.name === name) || OTHER;
@@ -46,6 +51,12 @@ function toNumber(raw) {
   const n = parseFloat(s);
   return isFinite(n) ? n : 0;
 }
+
+// Особые места сохраняются под русскими именами — переводим только при показе.
+const SPECIAL_MERCHANTS = {
+  'Проценты по счёту': 'interest', 'Налог': 'tax', 'Личный перевод': 'transfer', 'Пополнение другого счёта': 'topup',
+};
+const merchLabel = m => (SPECIAL_MERCHANTS[m] ? tr('merch')[SPECIAL_MERCHANTS[m]] : m);
 
 // Из строки-описания достаём читаемое имя места.
 function merchantOf(desc) {
@@ -125,23 +136,28 @@ let CAT_GROUPS = [];     // категории кольца, от большей
 let CAT_TOTAL = 0;
 
 const $ = id => document.getElementById(id);
-const fmt = n => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Math.round(n)) + ' ֏';
-// «1 операция / 2 операции / 5 операций»
-const plural = (n, one, few, many) => {
-  const m10 = n % 10, m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return `${n} ${one}`;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return `${n} ${few}`;
-  return `${n} ${many}`;
+/* ---------- язык ---------- */
+
+let LANG = 'ru';
+// строка текущего языка; если перевода нет — русская
+const tr = (key, ...args) => {
+  const v = key in I18N[LANG] ? I18N[LANG][key] : I18N.ru[key];
+  return typeof v === 'function' ? v(...args) : v;
 };
+// «1 операция / 2 операции / 5 операций», «1 day / 2 days», «5 օր»
+const plural = (n, word) => {
+  const forms = tr('forms')[word];
+  const kind = new Intl.PluralRules(tr('locale')).select(n);
+  return `${n} ${forms[kind] || forms.other || forms.many}`;
+};
+
+const fmt = n => new Intl.NumberFormat(tr('locale'), { maximumFractionDigits: 0 }).format(Math.round(n)) + ' ֏';
 const fmtDate = iso => iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' + iso.slice(0, 4);
-const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-// дательный падеж — для «накопите к апрелю 2027»
-const MONTHS_TO = ['январю', 'февралю', 'марту', 'апрелю', 'маю', 'июню', 'июлю', 'августу', 'сентябрю', 'октябрю', 'ноябрю', 'декабрю'];
 const monthName = key => {
   const [y, m] = key.split('-');
-  return MONTHS[+m - 1] + ' ' + y;
+  return tr('months')[+m - 1] + ' ' + y;
 };
-const grp = n => new Intl.NumberFormat('ru-RU').format(n);
+const grp = n => new Intl.NumberFormat(tr('locale')).format(n);
 
 /* ---------- загрузка файлов ---------- */
 
@@ -161,7 +177,7 @@ function readFiles(fileList) {
     hideLoader();
     const rows = results.flat();
     if (!rows.length) {
-      showUploadError('Не удалось найти операции в файле. Загрузите выписку банка в формате .xlsx — с колонками «Дата», «Мутք/Ելք» и описанием операции.');
+      showUploadError(tr('errNone'));
       return;
     }
 
@@ -171,7 +187,7 @@ function readFiles(fileList) {
     fresh.forEach(t => known.add(t.uid));
 
     if (!fresh.length) {
-      showUploadError('Эти операции уже загружены — выписка за этот период уже есть.');
+      showUploadError(tr('errDup'));
       return;
     }
 
@@ -179,19 +195,14 @@ function readFiles(fileList) {
     save();
     showDashboard();
     flash(rows.length - fresh.length
-      ? `Добавлено ${plural(fresh.length, 'операция', 'операции', 'операций')}, ${rows.length - fresh.length} уже были загружены`
-      : `Добавлено ${plural(fresh.length, 'операция', 'операции', 'операций')}`);
+      ? tr('addedDup', plural(fresh.length, 'op'), rows.length - fresh.length)
+      : tr('added', plural(fresh.length, 'op')));
   });
 }
 
 /* ---- экран разбора ---- */
 
-const LOAD_STEPS = [
-  { text: 'Читаем файл',                pct: 20 },
-  { text: 'Ищем операции',              pct: 50 },
-  { text: 'Раскладываем по категориям', pct: 78 },
-  { text: 'Считаем итоги',              pct: 100 },
-];
+const LOAD_STEPS = [20, 50, 78, 100];   // прогресс после каждого шага, тексты — tr('steps')
 
 let loaderBack = 'upload';   // куда вернуться, если разбор не удался
 
@@ -214,19 +225,17 @@ function runLoader(fileCount, parsing) {
   const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const pause = calm ? 120 : 700;
 
-  $('loaderTitle').textContent = fileCount > 1
-    ? `Разбираем ${plural(fileCount, 'выписку', 'выписки', 'выписок')}`
-    : 'Разбираем выписку';
-  $('loaderSteps').innerHTML = LOAD_STEPS.map(s =>
+  $('loaderTitle').textContent = fileCount > 1 ? tr('loadMany', plural(fileCount, 'file')) : tr('loadOne');
+  $('loaderSteps').innerHTML = tr('steps').map(text =>
     `<li><span class="loader-tick"><i class="fa-regular fa-circle" aria-hidden="true"></i></span>
-         <span>${s.text}</span></li>`).join('');
+         <span>${text}</span></li>`).join('');
   $('loaderFill').style.width = '0%';
   $('loaderPct').textContent = '0%';
 
   const items = [...document.querySelectorAll('#loaderSteps li')];
   parsing.then(res => {
     const n = res.flat().length;
-    if (n) items[1].lastElementChild.textContent = `Ищем операции · нашли ${n}`;
+    if (n) items[1].lastElementChild.textContent = tr('found', n);
   });
 
   return new Promise(resolve => {
@@ -238,8 +247,8 @@ function runLoader(fileCount, parsing) {
       if (i === items.length) { setTimeout(resolve, calm ? 60 : 350); return; }
       items[i].classList.add('is-on');
       items[i].querySelector('.loader-tick').innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
-      $('loaderFill').style.width = LOAD_STEPS[i].pct + '%';
-      $('loaderPct').textContent = LOAD_STEPS[i].pct + '%';
+      $('loaderFill').style.width = LOAD_STEPS[i] + '%';
+      $('loaderPct').textContent = LOAD_STEPS[i] + '%';
       setTimeout(() => tick(i + 1), pause);
     };
     tick(0);
@@ -289,10 +298,10 @@ function renderFiles() {
       <li class="file-chip">
         <span class="file-chip-main">
           <span class="file-chip-name">${esc(label)}</span>
-          <span class="file-chip-meta">${plural(rows.length, 'операция', 'операции', 'операций')} · ${esc(name)}</span>
+          <span class="file-chip-meta">${plural(rows.length, 'op')} · ${esc(name)}</span>
         </span>
         <button type="button" class="file-chip-x" data-file="${esc(name)}"
-                title="Убрать эту выписку" aria-label="Убрать выписку ${esc(name)}">
+                title="${tr('removeTitle')}" aria-label="${esc(tr('removeAria', name))}">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </li>`;
@@ -304,7 +313,7 @@ function removeFile(name) {
   save();
   if (!TX.length) { resetAll(); return; }
   showDashboard();
-  flash('Выписка убрана');
+  flash(tr('removed'));
 }
 
 /* ---------- отрисовка ---------- */
@@ -318,7 +327,7 @@ function showDashboard() {
   const sel = $('monthSelect');
   const wanted = sel.value;                    // после добавления файла период не сбрасываем
   sel.innerHTML = '';
-  if (months.length > 1) sel.append(new Option('Все периоды', 'all'));
+  if (months.length > 1) sel.append(new Option(tr('allPeriods'), 'all'));
   months.forEach(m => sel.append(new Option(monthName(m), m)));
   sel.value = [...sel.options].some(o => o.value === wanted) ? wanted
     : (months.length > 1 ? 'all' : months[0]);
@@ -326,11 +335,13 @@ function showDashboard() {
   renderFiles();
 
   // в фильтре нужны категории и доходов тоже — таблица показывает оба типа
-  const cats = [...new Set(TX.map(t => t.cat))].sort();
+  const cats = [...new Set(TX.map(t => t.cat))].sort((a, b) => catLabel(a).localeCompare(catLabel(b), tr('locale')));
   const cf = $('catFilter');
+  const wantedCat = cf.value;                  // и выбранную категорию тоже — например, при смене языка
   cf.innerHTML = '';
-  cf.append(new Option('Все категории', 'all'));
-  cats.forEach(c => cf.append(new Option(c, c)));
+  cf.append(new Option(tr('allCats'), 'all'));
+  cats.forEach(c => cf.append(new Option(catLabel(c), c)));
+  cf.value = cats.includes(wantedCat) ? wantedCat : 'all';
 
   render();
 }
@@ -351,25 +362,25 @@ function render(keep) {
   const totalIn = ins.reduce((s, t) => s + t.amount, 0);
 
   const dates = VIEW.map(t => t.date).sort();
-  $('periodTitle').textContent = m === 'all' ? 'Все периоды' : monthName(m);
+  $('periodTitle').textContent = m === 'all' ? tr('allPeriods') : monthName(m);
   $('periodSub').textContent = dates.length
-    ? `${fmtDate(dates[0])} — ${fmtDate(dates[dates.length - 1])} · ${plural(VIEW.length, 'операция', 'операции', 'операций')}`
-    : 'Нет операций';
+    ? `${fmtDate(dates[0])} — ${fmtDate(dates[dates.length - 1])} · ${plural(VIEW.length, 'op')}`
+    : tr('noOps');
 
   $('sumIncome').textContent = fmt(totalIn);
-  $('cntIncome').textContent = plural(ins.length, 'поступление', 'поступления', 'поступлений');
+  $('cntIncome').textContent = plural(ins.length, 'inc');
   $('sumExpense').textContent = fmt(totalOut);
-  $('cntExpense').textContent = plural(outs.length, 'трата', 'траты', 'трат');
+  $('cntExpense').textContent = plural(outs.length, 'spend');
 
   const net = totalIn - totalOut;
   const netEl = $('sumNet');
   netEl.textContent = (net >= 0 ? '+' : '−') + fmt(Math.abs(net)).replace('-', '');
   netEl.className = 'card-value ' + (net >= 0 ? 'income' : 'expense');
-  $('netNote').textContent = net >= 0 ? 'отложено за период' : 'потрачено больше, чем пришло';
+  $('netNote').textContent = tr(net >= 0 ? 'netPos' : 'netNeg');
 
   const days = new Set(outs.map(t => t.date)).size || 1;
   $('avgDay').textContent = fmt(totalOut / days);
-  $('avgNote').textContent = `за ${plural(days, 'день', 'дня', 'дней')} с тратами`;
+  $('avgNote').textContent = tr('avgNote', plural(days, 'day'));
 
   renderGoal();
   renderCategories(outs, totalOut);
@@ -400,12 +411,12 @@ function savingsStats() {
 function humanSpan(months) {
   if (months < 1) {
     const w = Math.max(1, Math.round(months * 4.35));
-    return plural(w, 'неделя', 'недели', 'недель');
+    return plural(w, 'week');
   }
   const total = Math.round(months);
-  if (total < 12) return plural(total, 'месяц', 'месяца', 'месяцев');
+  if (total < 12) return plural(total, 'month');
   const y = Math.floor(total / 12), rest = total % 12;
-  return plural(y, 'год', 'года', 'лет') + (rest ? ' и ' + plural(rest, 'месяц', 'месяца', 'месяцев') : '');
+  return plural(y, 'year') + (rest ? ` ${tr('and')} ` + plural(rest, 'month') : '');
 }
 
 function goalValue(el) {
@@ -449,44 +460,42 @@ function renderGoal() {
   const st = savingsStats();
   const avg = st && st.perMonth > 0 ? st.perMonth : 0;
 
-  $('goalMonthly').placeholder = avg ? grp(Math.round(avg)) : 'например, 50 000';
+  $('goalAmount').placeholder = grp(500000);
+  $('goalMonthly').placeholder = avg ? grp(Math.round(avg)) : tr('example', grp(50000));
   $('goalHint').textContent = avg
-    ? `В среднем у вас остаётся ${fmt(avg)} в месяц — по выпискам за ${plural(st.days, 'день', 'дня', 'дней')}.`
-      + (st.days < 30 ? ' Данных пока мало, прогноз грубый.' : '')
-    : 'По выпискам расходы больше доходов, среднего темпа накоплений нет — укажите, сколько готовы откладывать.';
+    ? tr('goalHint', fmt(avg), plural(st.days, 'day')) + (st.days < 30 ? tr('goalFew') : '')
+    : tr('goalNoAvg');
 
   const box = $('goalResult');
   const target = goalValue($('goalAmount'));
   const rate = goalValue($('goalMonthly')) || avg;
 
   if (!target) {
-    box.innerHTML = '<p class="goal-empty">Введите сумму — посчитаем, сколько времени на неё уйдёт.</p>';
+    box.innerHTML = `<p class="goal-empty">${tr('goalEmpty')}</p>`;
     return;
   }
   if (rate <= 0) {
-    box.innerHTML = '<p class="goal-empty">Пока вы тратите больше, чем зарабатываете, срок посчитать нельзя. '
-      + 'Впишите сумму, которую готовы откладывать каждый месяц.</p>';
+    box.innerHTML = `<p class="goal-empty">${tr('goalNeg')}</p>`;
     return;
   }
 
   const months = target / rate;
   if (months > 600) {
-    box.innerHTML = `<p class="goal-empty">При темпе ${fmt(rate)} в месяц на эту сумму уйдёт больше 50 лет. `
-      + 'Попробуйте цель поменьше или увеличьте ежемесячный взнос.</p>';
+    box.innerHTML = `<p class="goal-empty">${tr('goalLong', fmt(rate))}</p>`;
     return;
   }
 
   const when = new Date(Date.now() + Math.ceil(months * MONTH_DAYS) * DAY_MS);
   const key = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, '0')}`;
   const fromAvg = !goalValue($('goalMonthly'));
+  const endMonth = tr('lcMonth') ? monthName(key).toLowerCase() : monthName(key);
 
   box.innerHTML = `
     <p class="goal-big">≈ ${humanSpan(months)}</p>
-    <p class="goal-date">Накопите <b>${fmt(target)}</b> примерно
-       к ${MONTHS_TO[when.getMonth()]} ${when.getFullYear()} года</p>
+    <p class="goal-date">${tr('goalDate', fmt(target), when.getMonth(), when.getFullYear())}</p>
     <div class="goal-track"><span class="goal-fill"></span></div>
-    <div class="goal-ends"><span>сегодня</span><span>${monthName(key).toLowerCase()}</span></div>
-    <p class="goal-note">Если откладывать <b>${fmt(rate)}</b> в месяц${fromAvg ? ' — как сейчас' : ''}.</p>`;
+    <div class="goal-ends"><span>${tr('today')}</span><span>${endMonth}</span></div>
+    <p class="goal-note">${tr('goalNote', fmt(rate), fromAvg)}</p>`;
   requestAnimationFrame(() => {
     const fill = box.querySelector('.goal-fill');
     if (fill) fill.style.width = '100%';
@@ -527,7 +536,7 @@ function renderCategories(outs, total) {
   $('catList').innerHTML = groups.map(g => `
     <li data-cat="${esc(g.key)}">
       <span class="dot" style="background:${catColor(g.key)}"></span>
-      <span>${esc(g.key)} <span class="cat-pct">${Math.round(g.sum / total * 100)}%</span></span>
+      <span>${esc(catLabel(g.key))} <span class="cat-pct">${Math.round(g.sum / total * 100)}%</span></span>
       <span class="cat-sum">${fmt(g.sum)}</span>
     </li>`).join('');
 
@@ -544,7 +553,7 @@ function setDonutFocus(name) {
 
   const show = g || CAT_GROUPS[0];
   $('donutPct').textContent = show ? Math.round(show.sum / CAT_TOTAL * 100) + '%' : '—';
-  $('donutCap').textContent = show ? show.key : 'нет расходов';
+  $('donutCap').textContent = show ? catLabel(show.key) : tr('noSpend');
   $('donutSum').textContent = show ? fmt(show.sum) : '';
 }
 
@@ -572,7 +581,7 @@ function renderMerchants(outs) {
   const max = groups.length ? groups[0].sum : 1;
   $('merchantList').innerHTML = groups.map(g => `
     <li>
-      <div class="bar-row"><span class="bar-name">${esc(g.key)}</span><span class="bar-sum">${fmt(g.sum)}</span></div>
+      <div class="bar-row"><span class="bar-name">${esc(merchLabel(g.key))}</span><span class="bar-sum">${fmt(g.sum)}</span></div>
       <div class="bar-track"><div class="bar-fill" data-w="${(g.sum / max) * 100}"></div></div>
     </li>`).join('');
   requestAnimationFrame(() => {
@@ -630,14 +639,14 @@ function renderDayDetail() {
     .sort((a, b) => b.amount - a.amount);
   const total = items.reduce((s, t) => s + t.amount, 0);
 
-  $('dayDetailDate').textContent = fmtDate(selectedDay) + ' · ' + plural(items.length, 'трата', 'траты', 'трат');
+  $('dayDetailDate').textContent = fmtDate(selectedDay) + ' · ' + plural(items.length, 'spend');
   $('dayDetailSum').textContent = fmt(total);
   $('dayDetailList').innerHTML = items.map(t => `
     <li>
       <span class="day-item-main">
         <span class="dot" style="background:${catColor(t.cat)}"></span>
-        <span class="day-item-name">${esc(t.merchant)}</span>
-        <span class="day-item-cat">${esc(t.cat)}</span>
+        <span class="day-item-name">${esc(merchLabel(t.merchant))}</span>
+        <span class="day-item-cat">${esc(catLabel(t.cat))}</span>
       </span>
       <span class="day-item-sum expense">−${fmt(t.amount)}</span>
     </li>`).join('');
@@ -652,7 +661,7 @@ function renderTable() {
   const list = VIEW.filter(t =>
     (type === 'all' || t.type === type) &&
     (cat === 'all' || t.cat === cat) &&
-    (!q || t.merchant.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q))
+    (!q || merchLabel(t.merchant).toLowerCase().includes(q) || t.desc.toLowerCase().includes(q))
   );
 
   // итог по тому, что сейчас в таблице, — чтобы фильтр сразу отвечал «сколько это»
@@ -660,17 +669,17 @@ function renderTable() {
   const outSum = list.filter(t => t.type === 'out').reduce((s, t) => s + t.amount, 0);
   const money = n => `<b class="${n > 0 ? 'income' : n < 0 ? 'expense' : ''}">${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}</b>`;
   $('txSummary').innerHTML = list.length
-    ? `<span>Доходы: ${money(inSum)}</span>
-       <span>Расходы: ${money(-outSum)}</span>
-       <span>Разница: ${money(inSum - outSum)}</span>`
-    : '<span>Ничего не найдено — попробуйте изменить фильтр.</span>';
+    ? `<span>${tr('income')}: ${money(inSum)}</span>
+       <span>${tr('expense')}: ${money(-outSum)}</span>
+       <span>${tr('net')}: ${money(inSum - outSum)}</span>`
+    : `<span>${tr('nothing')}</span>`;
 
-  $('txCount').textContent = plural(list.length, 'операция', 'операции', 'операций');
+  $('txCount').textContent = plural(list.length, 'op');
   $('txBody').innerHTML = list.slice(0, shown).map(t => `
     <tr>
       <td class="c-date">${fmtDate(t.date)}</td>
-      <td class="c-name">${esc(t.merchant)}</td>
-      <td class="c-cat"><span class="tag"><span class="dot" style="background:${catColor(t.cat)}"></span>${esc(t.cat)}</span></td>
+      <td class="c-name">${esc(merchLabel(t.merchant))}</td>
+      <td class="c-cat"><span class="tag"><span class="dot" style="background:${catColor(t.cat)}"></span>${esc(catLabel(t.cat))}</span></td>
       <td class="c-amount amount right ${t.type === 'in' ? 'income' : 'expense'}">${t.type === 'in' ? '+' : '−'}${fmt(t.amount)}</td>
     </tr>`).join('');
 
@@ -768,6 +777,41 @@ $('themeBtn').addEventListener('click', () => {
 applyTheme(
   localStorage.getItem(THEME_KEY) ||
   (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+);
+
+/* ---------- язык интерфейса ---------- */
+
+// Статичные тексты страницы берутся из data-i18n-атрибутов, остальное — перерисовкой.
+function applyLang(lang) {
+  LANG = I18N[lang] ? lang : 'ru';
+  document.documentElement.lang = LANG;
+  $('langSelect').value = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = tr(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-attr]').forEach(el => {
+    el.dataset.i18nAttr.split(';').forEach(pair => {
+      const [attr, key] = pair.split(':');
+      el.setAttribute(attr, tr(key));
+    });
+  });
+  $('uploadError').classList.add('hidden');     // ошибка осталась бы на старом языке
+  ['goalAmount', 'goalMonthly'].forEach(id => {  // разряды в полях — по правилам языка
+    const el = $(id), v = goalValue(el);
+    if (v) el.value = grp(v);
+  });
+  try { localStorage.setItem(LANG_KEY, LANG); } catch (e) { /* без сохранения */ }
+}
+
+$('langSelect').addEventListener('change', e => {
+  applyLang(e.target.value);
+  if (TX.length) showDashboard();
+});
+
+// по умолчанию — язык браузера, если он один из наших
+applyLang(
+  localStorage.getItem(LANG_KEY) ||
+  ((navigator.languages || [navigator.language]).map(l => String(l).slice(0, 2)).find(l => I18N[l])) ||
+  'ru'
 );
 
 /* восстановление ранее загруженных выписок */

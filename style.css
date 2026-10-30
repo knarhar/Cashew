@@ -190,6 +190,12 @@ p { margin: 0 0 12px; }
   cursor: pointer; transition: background-color .2s ease, color .2s ease;
 }
 .icon-btn:hover { background: var(--text); color: var(--paper); }
+/* выбор языка — та же таблетка, что и кнопки рядом */
+.topbar-actions .lang-select {
+  border-color: var(--text); border-radius: var(--r-pill); background-color: transparent;
+  padding: 0 36px 0 16px; background-position: right 12px center; background-size: 12px 12px;
+}
+.reset-ico { display: none; }
 #moreBtn { display: flex; margin: 24px auto 0; }
 
 /* ---- шапка дашборда ---- */
@@ -404,6 +410,10 @@ table.tx td.amount { white-space: nowrap; font-weight: 500; font-variant-numeric
   .cards { grid-template-columns: 1fr; }
   .panel { padding: 20px; }
   .brand-sub { display: none; }
+  /* на телефоне три контрола в шапке не влезают с текстом — «очистить» становится иконкой */
+  #resetBtn { width: 44px; padding: 0; }
+  .reset-ico { display: inline; }
+  .reset-text { display: none; }
   .donut-row { justify-content: center; }
   .filters select { flex: 1 1 100%; }
   .lead { font-size: 17px; }
