@@ -24,3 +24,9 @@ Data is kept only in your browser's local storage.
 
 Plain HTML, CSS and JavaScript — no build step, no server.
 [SheetJS](https://sheetjs.com) reads the spreadsheets. Hosted on GitHub Pages.
+
+## License
+
+[MIT](LICENSE) © 2026 Knarik Harutyunyan.
+The bundled `vendor/xlsx.full.min.js` is SheetJS Community Edition, under its own
+Apache 2.0 license.
